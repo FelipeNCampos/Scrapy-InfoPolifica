@@ -37,7 +37,7 @@ jobs:
           pyinstaller --noconfirm --clean --onefile --windowed --name ScrapyInfoPolitica --paths src src/main.py
 
       - name: Install WiX
-        run: dotnet tool install --global wix
+        run: dotnet tool install --global wix --version 7.*
 
       - name: Resolve package version
         id: version
@@ -60,7 +60,7 @@ jobs:
         run: |
           $exePath = Join-Path $pwd "dist\ScrapyInfoPolitica.exe"
           $msiPath = Join-Path $pwd "dist\ScrapyInfoPolitica-${{ steps.version.outputs.value }}-x64.msi"
-          wix build packaging\ScrapyInfoPolitica.wxs `
+          wix build -acceptEula wix7 packaging\ScrapyInfoPolitica.wxs `
             -d AppExe="$exePath" `
             -d ProductVersion="${{ steps.version.outputs.value }}" `
             -arch x64 `
