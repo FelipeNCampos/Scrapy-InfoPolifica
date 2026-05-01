@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Scrapy InfoPolitica"
+    Manufacturer="Scrapy InfoPolitica"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="6f7a2ef0-2441-4cc3-9d8c-47cc0390df4d"
+    Scope="perUser">
+    <MajorUpgrade DowngradeErrorMessage="Uma versao mais recente do Scrapy InfoPolitica ja esta instalada." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="ScrapyInfoPolitica">
+          <Component Id="MainExecutable" Guid="ed23e9eb-33b0-4be2-a915-8a388771882c">
+            <File
+              Id="ScrapyInfoPoliticaExe"
+              Source="$(var.AppExe)"
+              Name="ScrapyInfoPolitica.exe"
+              KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Scrapy InfoPolitica">
+        <Component Id="ApplicationShortcut" Guid="f6588ef5-7964-4761-b5c4-eb1360ef46f7">
+          <Shortcut
+            Id="ApplicationStartMenuShortcut"
+            Name="Scrapy InfoPolitica"
+            Target="[INSTALLFOLDER]ScrapyInfoPolitica.exe"
+            WorkingDirectory="INSTALLFOLDER" />
+          <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+          <RegistryValue
+            Root="HKCU"
+            Key="Software\ScrapyInfoPolitica"
+            Name="installed"
+            Type="integer"
+            Value="1"
+            KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Scrapy InfoPolitica" Level="1">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+  </Package>
+</Wix>

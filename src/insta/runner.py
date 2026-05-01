@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import tempfile
 import re
 import threading
@@ -28,9 +29,26 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
-ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
-DEFAULT_CHROME_PROFILE = Path(__file__).resolve().parent / "profile"
-OUTPUT_ROOT_DIR = Path(__file__).resolve().parents[2] / "output"
+APP_NAME = "ScrapyInfoPolitica"
+
+
+def get_app_data_dir():
+    return Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / APP_NAME
+
+
+def get_app_root_dir():
+    if getattr(sys, "frozen", False):
+        app_data_dir = get_app_data_dir()
+        app_data_dir.mkdir(parents=True, exist_ok=True)
+        return app_data_dir
+
+    return Path(__file__).resolve().parents[1]
+
+
+APP_ROOT_DIR = get_app_root_dir()
+ENV_FILE = APP_ROOT_DIR / ".env"
+DEFAULT_CHROME_PROFILE = APP_ROOT_DIR / "insta" / "profile"
+OUTPUT_ROOT_DIR = APP_ROOT_DIR.parent / "output" if not getattr(sys, "frozen", False) else APP_ROOT_DIR / "output"
 OUTPUT_SUBDIR_NAME = "insta"
 RUNTIME_PROFILES_DIR = OUTPUT_ROOT_DIR / "_runtime_profiles"
 
@@ -147,7 +165,7 @@ INSTAGRAM_LOGIN_POPUP_TEXT_MARKERS = [
 
 def log_instagram(message):
     timestamp = datetime.now().strftime("%H:%M:%S")
-    print(f"[instagram {timestamp}] {message}")
+    print(f"[instagram {timestamp}] {message}", flush=True)
 
 
 def format_progress(current, total):

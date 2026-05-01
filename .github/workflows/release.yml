@@ -1,0 +1,92 @@
+name: Release MSI
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versao do pacote MSI, sem v. Exemplo: 1.0.0"
+        required: true
+        default: "0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-release.txt pyinstaller
+
+      - name: Build executable
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed --name ScrapyInfoPolitica --paths src src/main.py
+
+      - name: Install WiX
+        run: dotnet tool install --global wix
+
+      - name: Resolve package version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ github.event.inputs.version }}"
+          } else {
+            $version = "${{ github.ref_name }}" -replace "^v", ""
+          }
+
+          if ($version -notmatch "^\d+\.\d+\.\d+$") {
+            throw "A versao do MSI deve estar no formato N.N.N. Valor recebido: $version"
+          }
+
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build MSI
+        shell: pwsh
+        run: |
+          $exePath = Join-Path $pwd "dist\ScrapyInfoPolitica.exe"
+          $msiPath = Join-Path $pwd "dist\ScrapyInfoPolitica-${{ steps.version.outputs.value }}-x64.msi"
+          wix build packaging\ScrapyInfoPolitica.wxs `
+            -d AppExe="$exePath" `
+            -d ProductVersion="${{ steps.version.outputs.value }}" `
+            -arch x64 `
+            -o "$msiPath"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScrapyInfoPolitica-${{ steps.version.outputs.value }}-windows
+          path: |
+            dist/ScrapyInfoPolitica.exe
+            dist/ScrapyInfoPolitica-${{ steps.version.outputs.value }}-x64.msi
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $msi = "dist\ScrapyInfoPolitica-${{ steps.version.outputs.value }}-x64.msi"
+          $exe = "dist\ScrapyInfoPolitica.exe"
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag $msi $exe --title $tag --generate-notes
+          } else {
+            gh release upload $tag $msi $exe --clobber
+          }
